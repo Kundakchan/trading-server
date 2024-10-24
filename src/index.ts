@@ -1,20 +1,16 @@
 import WebSocket from "ws";
 
-// Подключаемся к WebSocket серверу
-const ws = new WebSocket("ws://localhost:8080");
+const WEBSOCKET_URL = process.env.API_ANALYTICS_WEBSOCKET;
+if (!WEBSOCKET_URL) throw new Error("Отсутствует адрес веб-сокета аналитики");
 
-// Событие при успешном подключении
-ws.on("open", () => {
-  console.log("Соединение установлено с сервером.");
+const ws = new WebSocket(WEBSOCKET_URL);
+
+ws.on("error", console.error);
+
+ws.on("open", function open() {
+  ws.send("something");
 });
 
-// Событие при получении сообщения от сервера
-ws.on("message", (message: string) => {
-  console.log(`Сообщение от сервера:`);
-  console.log(JSON.parse(message));
-});
-
-// Событие при закрытии соединения
-ws.on("close", () => {
-  console.log("Соединение с сервером закрыто");
+ws.on("message", function message(data) {
+  console.log("received: %s", data);
 });
