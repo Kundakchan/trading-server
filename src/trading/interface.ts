@@ -20,13 +20,7 @@ export interface _CreatePackageOfOrdersParams {
   data: RecommendationsListItem;
   capital: number;
 }
-export interface _CreatePackageOfOrdersResult {
-  symbol: string;
-  side: Side;
-  prices: number;
-  amounts: number;
-  timeInForce: OrderTimeInForceV5;
-}
+export interface _CreatePackageOfOrdersResult extends BatchOrderCreateParams {}
 export interface _CreatePackageOfOrders {
   (params: _CreatePackageOfOrdersParams): _CreatePackageOfOrdersResult[] | null;
 }

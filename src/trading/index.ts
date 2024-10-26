@@ -13,6 +13,7 @@ import { price } from "../price";
 import { coins } from "../coins";
 import { wallet } from "../wallet";
 import { OrderTimeInForceV5 } from "bybit-api";
+import { order } from "../order";
 
 const numberOfCoinsToBuy = () => SETTING.NUMBER_OF_POSITIONS;
 
@@ -24,14 +25,23 @@ const startTrading: StartTrading = async (message) => {
 };
 
 const _placeOrder: PlaceOrder = async (data) => {
-  // TODO: Реализовать функцию генерирующую массив данных для размещения ордеров
   const capital = 100;
   const orders = _createPackageOfOrders({ data, capital });
-  console.log("placeOrder", orders);
+
+  if (!orders) {
+    console.log(
+      chalk.yellow(
+        `Не удалось сгенерировать данные для открыть ордеров: ${data.symbol}`
+      )
+    );
+    return;
+  }
+
+  const result = order.batchCreate(orders);
 };
 
 const _createPackageOfOrders: _CreatePackageOfOrders = ({ data, capital }) => {
-  const currentPrice = tickers.get(data.symbol).lastPrice;
+  const currentPrice = tickers.get(data.symbol)?.lastPrice;
   if (!currentPrice) {
     console.log(chalk.red(`Не удалось получить текущую цену: ${data.symbol}`));
     return null;
@@ -76,9 +86,10 @@ const _createPackageOfOrders: _CreatePackageOfOrders = ({ data, capital }) => {
   return prices.map((price, index) => ({
     symbol: data.symbol,
     side: data.side,
-    prices: price,
-    amounts: amounts[index],
+    price: price.toString(),
+    qty: amounts[index].toString(),
     timeInForce: "GTC" as OrderTimeInForceV5,
+    orderType: "Limit",
   }));
 };
 

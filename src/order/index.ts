@@ -1,11 +1,36 @@
 import { client } from "../client";
-import type { APIResponseV3WithTime } from "bybit-api";
-import { BatchOrderCreate, OrderCreate } from "./interface";
+import type {
+  APIResponseV3WithTime,
+  BatchCreateOrderResultV5,
+} from "bybit-api";
+import {
+  _AllOrderIdsFilled,
+  _LocaleCreate,
+  _LocaleRemove,
+  BatchCancelOrdersResponse,
+  BatchOrderCreate,
+  BatchOrderRemove,
+  BatchOrderRemoveResult,
+  LocaleGet,
+  OrderCreate,
+  OrderData,
+} from "./interface";
+import chalk from "chalk";
 
-const orders = [];
-const _localeCreate = () => {};
+let _data: OrderData[] = [];
+const _localeCreate: _LocaleCreate = (order) => {
+  _data.push(order);
+};
 const _localeUpdate = () => {};
-const _localeRemove = () => {};
+
+const localeGet: LocaleGet = (args) => {
+  return _data.filter((item) =>
+    Object.entries(args).every(([key, value]) => item[key] === value)
+  );
+};
+const _localeRemove: _LocaleRemove = (order) => {
+  _data = _data.filter((item) => item.orderId !== order.orderId);
+};
 const create: OrderCreate = async ({
   symbol,
   side,
@@ -31,15 +56,82 @@ const create: OrderCreate = async ({
 const update = async () => {};
 const remove = async () => {};
 
-const batchCreate: BatchOrderCreate = async (orders) => {
+const batchRemove: BatchOrderRemove = async (orders) => {
   try {
-    const data = await client.batchSubmitOrders("linear", orders);
+    const { retMsg, result, retExtInfo } = (await client.batchCancelOrders(
+      "linear",
+      orders
+    )) as unknown as BatchCancelOrdersResponse;
+
+    if (retMsg !== "OK") {
+      throw new Error(
+        `Не удалось выполнить пакетную отмену ордеров: ${retMsg}`
+      );
+    }
+
+    const cancel: BatchOrderRemoveResult = {
+      success: [],
+      error: [],
+    };
+
+    retExtInfo.list.forEach((item, index) => {
+      if (item.msg === "OK") {
+        _localeRemove({ orderId: result.list[index].orderId });
+        console.log(
+          chalk.green(
+            `Ордер успешно отменён: ${result.list[index].symbol} - order id: ${result.list[index].orderId}`
+          )
+        );
+        cancel.success.push(result.list[index].orderId);
+      } else {
+        console.log(
+          chalk.red(
+            `Не удалось полностью выполнить отмену пакетного ордера: ${result.list[index].symbol} - order id: ${result.list[index].orderId}`
+          )
+        );
+        cancel.error.push(result.list[index].orderId);
+      }
+    });
+    return cancel;
   } catch (error) {
-  } finally {
+    throw error;
   }
 };
+
+const batchCreate: BatchOrderCreate = async (orders) => {
+  try {
+    const { retMsg, result } = await client.batchSubmitOrders("linear", orders);
+
+    if (retMsg !== "OK")
+      throw new Error(
+        `Не удалось выполнить пакетное размещение ордеров: ${retMsg}`
+      );
+
+    const { list } = result as unknown as { list: BatchCreateOrderResultV5[] };
+
+    if (!_allOrderIdsFilled(list)) {
+      console.log(chalk.red("Не удалось создать все ордера"));
+      await batchRemove(list);
+      throw new Error("Не удалось создать все ордера");
+    } else {
+      list.forEach((order) => {
+        _localeCreate({
+          orderId: order.orderId,
+          placementType: "open",
+          symbol: order.symbol,
+        });
+      });
+      return localeGet({ symbol: list[0].symbol, placementType: "open" });
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+const _allOrderIdsFilled: _AllOrderIdsFilled = (orders) => {
+  return orders.every((order) => order.orderId.trim() !== "");
+};
 export const order = {
-  orders,
   create,
   update,
   remove,
