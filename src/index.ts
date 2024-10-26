@@ -2,7 +2,7 @@ import { analytics } from "./analytics";
 import { tickers } from "./tickers";
 import { coins } from "./coins";
 
-const SETTING = {
+export const SETTING = {
   LEVERAGE: 10, // Торговое плечо (число)
   FIELD: "lastPrice", // Поле, содержащее цену монеты
   TIMER_ORDER_CANCEL: 1, // Время отмены ордеров если он не выполнился (мин)
@@ -15,8 +15,8 @@ const SETTING = {
 const app = async () => {
   try {
     await coins.init();
-    analytics.init();
     tickers.init();
+    analytics.init();
   } catch (error) {
     throw error;
   }

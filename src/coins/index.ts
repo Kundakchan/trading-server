@@ -1,7 +1,8 @@
 import chalk from "chalk";
 import { client } from "../client";
+import { CoinsData, GetCoinInfo } from "./interface";
 
-const _data = {};
+const _data: CoinsData = {};
 
 const init = async () => {
   try {
@@ -27,7 +28,10 @@ const init = async () => {
 
 const getSymbols = () => Object.keys(_data);
 
+const getCoinInfo: GetCoinInfo = (symbol) => _data[symbol];
+
 export const coins = {
   init,
   getSymbols,
+  getCoinInfo,
 };
