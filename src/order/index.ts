@@ -1,8 +1,5 @@
 import { client } from "../client";
-import type {
-  APIResponseV3WithTime,
-  BatchCreateOrderResultV5,
-} from "bybit-api";
+import type { BatchCreateOrderResultV5 } from "bybit-api";
 import {
   _AllOrderIdsFilled,
   _LocaleCreate,
@@ -14,6 +11,7 @@ import {
   LocaleGet,
   OrderCreate,
   OrderData,
+  OrderRemove,
 } from "./interface";
 import chalk from "chalk";
 
@@ -55,9 +53,6 @@ const create: OrderCreate = async ({
 };
 const update = async () => {};
 
-interface OrderRemove {
-  (params: OrderData): Promise<void>;
-}
 const remove: OrderRemove = async (order) => {
   try {
     const { retMsg } = await client.cancelOrder({

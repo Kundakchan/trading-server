@@ -41,7 +41,7 @@ const _placeOrder: PlaceOrder = async (data) => {
 
   try {
     const createdOrders = await order.batchCreate(orders);
-    _setTimerForOutstandingOrders(createdOrders);
+    // _setTimerForOutstandingOrders(createdOrders);
   } catch (error) {
     console.log(chalk.red(`Не удалось установить ордера: ${data.symbol}`));
   }

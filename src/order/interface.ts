@@ -62,3 +62,7 @@ export interface LocaleGet {
 export interface LocaleGetParams {
   [key: string]: string;
 }
+
+export interface OrderRemove {
+  (params: OrderData): Promise<void>;
+}
