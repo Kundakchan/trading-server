@@ -54,7 +54,34 @@ const create: OrderCreate = async ({
   }
 };
 const update = async () => {};
-const remove = async () => {};
+
+interface OrderRemove {
+  (params: OrderData): Promise<void>;
+}
+const remove: OrderRemove = async (order) => {
+  try {
+    const { retMsg } = await client.cancelOrder({
+      category: "linear",
+      symbol: order.symbol,
+      orderId: order.orderId,
+    });
+
+    if (retMsg !== "OK") {
+      console.log(
+        chalk.red(
+          `Не удалось отменить ордер: ${order.symbol} - order id: ${order.orderId}, ${retMsg}`
+        )
+      );
+    }
+    _localeRemove(order);
+  } catch (error) {
+    console.log(
+      chalk.red(
+        `Не удалось отменить ордер: ${order.symbol} - order id: ${order.orderId}`
+      )
+    );
+  }
+};
 
 const batchRemove: BatchOrderRemove = async (orders) => {
   try {

@@ -1,5 +1,5 @@
 import { OrderTimeInForceV5 } from "bybit-api";
-import { BatchOrderCreateParams } from "../order/interface";
+import { BatchOrderCreateParams, OrderData } from "../order/interface";
 
 export type Side = "Sell" | "Buy";
 
@@ -23,4 +23,15 @@ export interface _CreatePackageOfOrdersParams {
 export interface _CreatePackageOfOrdersResult extends BatchOrderCreateParams {}
 export interface _CreatePackageOfOrders {
   (params: _CreatePackageOfOrdersParams): _CreatePackageOfOrdersResult[] | null;
+}
+
+export interface _SetTimerForOutstandingOrders {
+  (params: OrderData[]): void;
+}
+
+export interface TimerForPendingOrdersItem extends OrderData {
+  timerId: ReturnType<typeof setTimeout>;
+}
+export interface TimerForPendingOrders {
+  [index: string]: TimerForPendingOrdersItem;
 }

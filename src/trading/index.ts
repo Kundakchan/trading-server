@@ -5,6 +5,8 @@ import {
   PlaceOrder,
   _CreatePackageOfOrders,
   _CreatePackageOfOrdersResult,
+  _SetTimerForOutstandingOrders,
+  TimerForPendingOrders,
 } from "./interface";
 import { tickers } from "../tickers";
 import { SETTING } from "..";
@@ -15,7 +17,7 @@ import { wallet } from "../wallet";
 import { OrderTimeInForceV5 } from "bybit-api";
 import { order } from "../order";
 
-const numberOfCoinsToBuy = () => SETTING.NUMBER_OF_POSITIONS;
+const timerForPendingOrders: TimerForPendingOrders = {};
 
 const startTrading: StartTrading = async (message) => {
   const data = messageToJson<RecommendationsListItem[]>(message);
@@ -37,7 +39,12 @@ const _placeOrder: PlaceOrder = async (data) => {
     return;
   }
 
-  const result = order.batchCreate(orders);
+  try {
+    const createdOrders = await order.batchCreate(orders);
+    _setTimerForOutstandingOrders(createdOrders);
+  } catch (error) {
+    console.log(chalk.red(`Не удалось установить ордера: ${data.symbol}`));
+  }
 };
 
 const _createPackageOfOrders: _CreatePackageOfOrders = ({ data, capital }) => {
@@ -91,6 +98,17 @@ const _createPackageOfOrders: _CreatePackageOfOrders = ({ data, capital }) => {
     timeInForce: "GTC" as OrderTimeInForceV5,
     orderType: "Limit",
   }));
+};
+
+const _setTimerForOutstandingOrders: _SetTimerForOutstandingOrders = (
+  orders
+) => {
+  orders.forEach((item, index) => {
+    const timerId = setTimeout(() => {
+      order.remove(item);
+    }, 1000 * 60 * SETTING.TIMER_ORDER_CANCEL + 1000 * index);
+    timerForPendingOrders[item.orderId] = { ...item, timerId };
+  });
 };
 
 export { startTrading };
