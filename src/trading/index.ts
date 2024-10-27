@@ -16,13 +16,26 @@ import { coins } from "../coins";
 import { wallet } from "../wallet";
 import { OrderTimeInForceV5 } from "bybit-api";
 import { order } from "../order";
+import { position } from "../position";
 
 const timerForPendingOrders: TimerForPendingOrders = {};
 
 const startTrading: StartTrading = async (message) => {
   const data = messageToJson<RecommendationsListItem[]>(message);
   for (const coin of [data[0]]) {
-    await _placeOrder(coin);
+    if (position.localeHas(coin.symbol)) {
+      console.log(
+        chalk.yellow(`Данная позиция уже размещена position: ${coin.symbol}`)
+      );
+      continue;
+    } else if (order.localeHas(coin.symbol)) {
+      console.log(
+        chalk.yellow(`Данная позиция уже размещена order: ${coin.symbol}`)
+      );
+      continue;
+    } else {
+      await _placeOrder(coin);
+    }
   }
 };
 
@@ -41,7 +54,10 @@ const _placeOrder: PlaceOrder = async (data) => {
 
   try {
     const createdOrders = await order.batchCreate(orders);
-    // _setTimerForOutstandingOrders(createdOrders);
+    _setTimerForOutstandingOrders(createdOrders);
+    console.log(
+      chalk.green(`Ордера позиции успешно установлены: ${data.symbol}`)
+    );
   } catch (error) {
     console.log(chalk.red(`Не удалось установить ордера: ${data.symbol}`));
   }
@@ -105,7 +121,11 @@ const _setTimerForOutstandingOrders: _SetTimerForOutstandingOrders = (
 ) => {
   orders.forEach((item, index) => {
     const timerId = setTimeout(() => {
-      order.remove(item);
+      if (position.localeHas(item.symbol)) {
+        return;
+      } else {
+        order.remove(item);
+      }
     }, 1000 * 60 * SETTING.TIMER_ORDER_CANCEL + 1000 * index);
     timerForPendingOrders[item.orderId] = { ...item, timerId };
   });

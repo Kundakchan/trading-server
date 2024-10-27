@@ -26,6 +26,7 @@ const localeGet: LocaleGet = (args) => {
     Object.entries(args).every(([key, value]) => item[key] === value)
   );
 };
+const localeHas = (symbol) => !!localeGet({ symbol: symbol }).length;
 const _localeRemove: _LocaleRemove = (order) => {
   _data = _data.filter((item) => item.orderId !== order.orderId);
 };
@@ -157,5 +158,7 @@ export const order = {
   create,
   update,
   remove,
+  localeGet,
+  localeHas,
   batchCreate,
 };
