@@ -1,4 +1,5 @@
 import type {
+  AccountOrderV5,
   BatchCreateOrderResultV5,
   BatchOrderParamsV5,
   OrderParamsV5,
@@ -26,13 +27,6 @@ export interface _AllOrderIdsFilled {
   (params: BatchCreateOrderResultV5[]): boolean;
 }
 
-export interface _LocaleCreateParams
-  extends Pick<BatchCreateOrderResultV5, "orderId" | "symbol"> {
-  placementType: "open" | "close";
-}
-export interface _LocaleCreate {
-  (params: _LocaleCreateParams): void;
-}
 export interface _LocaleRemoveParams {
   orderId: string;
 }
@@ -40,7 +34,11 @@ export interface _LocaleRemove {
   (params: _LocaleRemoveParams): void;
 }
 
-export interface OrderData extends _LocaleCreateParams {}
+export interface OrderData extends Partial<AccountOrderV5> {
+  orderId: string;
+  symbol: string;
+  placementType?: "open" | "close";
+}
 
 export interface BatchOrderRemoveResult {
   success: string[];
@@ -65,4 +63,8 @@ export interface LocaleGetParams {
 
 export interface OrderRemove {
   (params: OrderData): Promise<void>;
+}
+
+export interface OrderLocaleSet {
+  (params: OrderData): void;
 }

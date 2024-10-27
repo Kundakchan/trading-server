@@ -1,8 +1,11 @@
-import { client } from "../client";
-import type { BatchCreateOrderResultV5 } from "bybit-api";
+import { client, setHandlerWS, ws } from "../client";
+import type {
+  AccountOrderV5,
+  BatchCreateOrderResultV5,
+  OrderStatusV5,
+} from "bybit-api";
 import {
   _AllOrderIdsFilled,
-  _LocaleCreate,
   _LocaleRemove,
   BatchCancelOrdersResponse,
   BatchOrderCreate,
@@ -11,15 +14,21 @@ import {
   LocaleGet,
   OrderCreate,
   OrderData,
+  OrderLocaleSet,
   OrderRemove,
 } from "./interface";
 import chalk from "chalk";
 
 let _data: OrderData[] = [];
-const _localeCreate: _LocaleCreate = (order) => {
-  _data.push(order);
+
+const _localeSet: OrderLocaleSet = (params) => {
+  const index = _data.findIndex((item) => item.orderId === params.orderId);
+  if (index === -1) {
+    _data.push(params);
+  } else {
+    _data[index] = { ..._data[index], ...params };
+  }
 };
-const _localeUpdate = () => {};
 
 const localeGet: LocaleGet = (args) => {
   return _data.filter((item) =>
@@ -27,8 +36,8 @@ const localeGet: LocaleGet = (args) => {
   );
 };
 const localeHas = (symbol) => !!localeGet({ symbol: symbol }).length;
-const _localeRemove: _LocaleRemove = (order) => {
-  _data = _data.filter((item) => item.orderId !== order.orderId);
+const _localeRemove: _LocaleRemove = (params) => {
+  _data = _data.filter((item) => item.orderId !== params.orderId);
 };
 const create: OrderCreate = async ({
   symbol,
@@ -138,7 +147,7 @@ const batchCreate: BatchOrderCreate = async (orders) => {
       throw new Error("Не удалось создать все ордера");
     } else {
       list.forEach((order) => {
-        _localeCreate({
+        _localeSet({
           orderId: order.orderId,
           placementType: "open",
           symbol: order.symbol,
@@ -154,11 +163,62 @@ const batchCreate: BatchOrderCreate = async (orders) => {
 const _allOrderIdsFilled: _AllOrderIdsFilled = (orders) => {
   return orders.every((order) => order.orderId.trim() !== "");
 };
+
+interface OrderActionsMap
+  extends Partial<Record<OrderStatusV5, _LocaleRemove | OrderLocaleSet>> {}
+
+const _actionsMap: OrderActionsMap = {
+  New: _localeSet,
+  PartiallyFilled: _localeSet,
+  Untriggered: _localeSet,
+  Rejected: _localeRemove,
+  PartiallyFilledCanceled: _localeRemove,
+  Filled: _localeRemove,
+  Cancelled: _localeRemove,
+  Triggered: _localeRemove,
+  Deactivated: _localeRemove,
+};
+
+interface OrderWatchParams {
+  afterFilled?: (params: AccountOrderV5[]) => void;
+  beforeFilled?: (params: AccountOrderV5[]) => void;
+}
+
+const watch = (params: OrderWatchParams) => {
+  setHandlerWS({
+    topic: "order",
+    handler: (message) => {
+      const { afterFilled, beforeFilled } = params;
+      const data = message.data as unknown as AccountOrderV5[];
+      if (beforeFilled) {
+        beforeFilled(data);
+      }
+      data.forEach((order) => {
+        const action = _actionsMap[order.orderStatus as OrderStatusV5];
+        if (action) {
+          action(order);
+        }
+      });
+      if (afterFilled) afterFilled(data);
+    },
+  });
+
+  ws.subscribeV5("order", "linear");
+};
+
+const init = () => {
+  watch({});
+};
+
+const getData = () => _data;
+
 export const order = {
+  getData,
   create,
   update,
   remove,
   localeGet,
   localeHas,
   batchCreate,
+  init,
 };

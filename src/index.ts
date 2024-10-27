@@ -2,6 +2,7 @@ import { analytics } from "./analytics";
 import { tickers } from "./tickers";
 import { coins } from "./coins";
 import { position } from "./position";
+import { order } from "./order";
 
 export const SETTING = {
   LEVERAGE: 10, // Торговое плечо (число)
@@ -19,6 +20,7 @@ const app = async () => {
     tickers.init();
     position.init();
     analytics.init();
+    order.init();
   } catch (error) {
     throw error;
   }

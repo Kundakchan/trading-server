@@ -23,6 +23,8 @@ const timerForPendingOrders: TimerForPendingOrders = {};
 const startTrading: StartTrading = async (message) => {
   const data = messageToJson<RecommendationsListItem[]>(message);
   for (const coin of [data[0]]) {
+    console.log("order", order.getData());
+
     if (position.localeHas(coin.symbol)) {
       console.log(
         chalk.yellow(`Данная позиция уже размещена position: ${coin.symbol}`)
@@ -120,11 +122,12 @@ const _setTimerForOutstandingOrders: _SetTimerForOutstandingOrders = (
   orders
 ) => {
   orders.forEach((item, index) => {
-    const timerId = setTimeout(() => {
+    const timerId = setTimeout(async () => {
       if (position.localeHas(item.symbol)) {
         return;
       } else {
-        order.remove(item);
+        await order.remove(item);
+        console.log(`Ордер удалён по таймеру: ${item.symbol}`);
       }
     }, 1000 * 60 * SETTING.TIMER_ORDER_CANCEL + 1000 * index);
     timerForPendingOrders[item.orderId] = { ...item, timerId };
