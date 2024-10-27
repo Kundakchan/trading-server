@@ -12,6 +12,7 @@ export const SETTING = {
   PRICE_DIFFERENCE_MULTIPLIER: 250, // На сколько процентов будет увеличен процент разницы между ценами (%)
   NUMBER_OF_POSITIONS: 1, // Количество закупаемых монет (шт)
   NUMBER_OF_ORDERS: 5, // Количество создаваемых ордеров для каждой монеты (шт)
+  SUCCESS_CLOSED_POSITION_PNL: 6, // Положительный pnl при котором закрывается позиция
 } as const;
 
 const app = async () => {

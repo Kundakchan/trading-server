@@ -11,7 +11,7 @@ export interface OrderCreateParams
     "symbol" | "side" | "qty" | "price" | "orderType" | "timeInForce"
   > {}
 export interface OrderCreate {
-  (params: OrderCreateParams): void;
+  (params: OrderCreateParams): Promise<OrderData[]>;
 }
 
 export interface BatchOrderCreateParams
@@ -45,7 +45,7 @@ export interface BatchOrderRemoveResult {
   error: string[];
 }
 export interface BatchOrderRemove {
-  (params: BatchCreateOrderResultV5[]): Promise<BatchOrderRemoveResult>;
+  (params: OrderData[]): Promise<BatchOrderRemoveResult>;
 }
 
 export interface BatchCancelOrdersResponse {

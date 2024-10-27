@@ -1,4 +1,5 @@
 import { client } from "../client";
+import { order } from "../order";
 import {
   PositionData,
   PositionGet,
@@ -8,20 +9,75 @@ import {
 } from "./interface";
 
 let _data: PositionData = {};
+let _dataOld: string[] = [];
 
 const init = async () => {
-  _watch();
+  _watch({
+    beforeFilled: async (params) => {
+      if (params.closed.length) {
+        await order.groupOrdersRemove(params.closed);
+      }
+
+      if (params.new.length) {
+        console.log("new", params.new);
+        await order.setTakingProfit(params.new);
+      }
+
+      if (params.opened.length) {
+        console.log("opened", params.opened);
+      }
+    },
+  });
 };
 
-const _watch = () => {
+interface PositionCheckForPosition {
+  (params: { new: string[]; old: string[] }): string[];
+}
+const _checkForAClosedPosition: PositionCheckForPosition = (params) => {
+  if (params.new.length) {
+    return params.old.filter((item) => !params.new.includes(item));
+  } else {
+    return params.old;
+  }
+};
+const _checkForAOpenPosition: PositionCheckForPosition = (params) => {
+  return _checkForAClosedPosition({ new: params.old, old: params.new });
+};
+
+interface PositionWatchParams {
+  beforeFilled?: (params: {
+    new: string[];
+    opened: string[];
+    closed: string[];
+  }) => Promise<void>;
+}
+const _watch = (params: PositionWatchParams) => {
   setTimeout(async () => {
     try {
+      const { beforeFilled } = params;
+      _dataOld = Object.keys(_data);
       const data = await get({ category: "linear", settleCoin: "USDT" });
       _localeUpdate(data);
+
+      const positions = {
+        new: _checkForAOpenPosition({
+          new: Object.keys(_data),
+          old: _dataOld,
+        }),
+        opened: Object.keys(_data),
+        closed: _checkForAClosedPosition({
+          new: Object.keys(_data),
+          old: _dataOld,
+        }),
+      };
+
+      if (beforeFilled) {
+        await beforeFilled(positions);
+      }
     } catch (error) {
       console.error(error);
     } finally {
-      _watch();
+      _watch(params);
     }
   }, 0);
 };

@@ -18,6 +18,10 @@ import {
   OrderRemove,
 } from "./interface";
 import chalk from "chalk";
+import { position } from "../position";
+import { calculateMarkupPrice } from "../utils";
+import { SETTING } from "..";
+import { Side } from "../trading/interface";
 
 let _data: OrderData[] = [];
 
@@ -48,7 +52,7 @@ const create: OrderCreate = async ({
   timeInForce = "PostOnly",
 }) => {
   try {
-    const data = client.submitOrder({
+    const { retMsg, result } = await client.submitOrder({
       category: "linear",
       orderType,
       symbol,
@@ -57,8 +61,19 @@ const create: OrderCreate = async ({
       price,
       timeInForce,
     });
+
+    if (retMsg !== "OK")
+      throw new Error(`Не удалось добавить ордер: ${symbol}`);
+
+    _localeSet({
+      orderId: result.orderId,
+      placementType: "close",
+      symbol: symbol,
+    });
+
+    return localeGet({ symbol: symbol, orderId: result.orderId });
   } catch (error) {
-  } finally {
+    throw error;
   }
 };
 const update = async () => {};
@@ -88,7 +103,11 @@ const remove: OrderRemove = async (order) => {
   }
 };
 
-const batchRemove: BatchOrderRemove = async (orders) => {
+const batchRemove: BatchOrderRemove = async (params) => {
+  const orders = params.map((item) => ({
+    orderId: item.orderId,
+    symbol: item.symbol,
+  }));
   try {
     const { retMsg, result, retExtInfo } = (await client.batchCancelOrders(
       "linear",
@@ -164,6 +183,18 @@ const _allOrderIdsFilled: _AllOrderIdsFilled = (orders) => {
   return orders.every((order) => order.orderId.trim() !== "");
 };
 
+const groupOrdersRemove = async (params: string[]) => {
+  try {
+    for (const symbol of params) {
+      const openOrders = localeGet({ symbol: symbol, placementType: "open" });
+      if (!openOrders.length) continue;
+      await batchRemove(openOrders);
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
 interface OrderActionsMap
   extends Partial<Record<OrderStatusV5, _LocaleRemove | OrderLocaleSet>> {}
 
@@ -212,6 +243,33 @@ const init = () => {
 
 const getData = () => _data;
 
+const setTakingProfit = async (params: string[]) => {
+  for (const symbol of params) {
+    const data = position.localeGet(symbol);
+
+    const price = calculateMarkupPrice({
+      avgPrice: parseFloat(data.avgPrice),
+      leverage: parseFloat(data.leverage ?? SETTING.LEVERAGE.toString()),
+      side: data.side as Side,
+      pnl: SETTING.SUCCESS_CLOSED_POSITION_PNL,
+    });
+
+    try {
+      await create({
+        symbol: symbol,
+        side: data.side === "Buy" ? "Sell" : "Buy",
+        qty: data.size,
+        price: price.toString(),
+        orderType: "Limit",
+        timeInForce: "GTC",
+      });
+    } catch (error) {
+      console.error(error);
+      continue;
+    }
+  }
+};
+
 export const order = {
   getData,
   create,
@@ -221,4 +279,6 @@ export const order = {
   localeHas,
   batchCreate,
   init,
+  groupOrdersRemove,
+  setTakingProfit,
 };

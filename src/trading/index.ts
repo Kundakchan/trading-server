@@ -23,8 +23,6 @@ const timerForPendingOrders: TimerForPendingOrders = {};
 const startTrading: StartTrading = async (message) => {
   const data = messageToJson<RecommendationsListItem[]>(message);
   for (const coin of [data[0]]) {
-    console.log("order", order.getData());
-
     if (position.localeHas(coin.symbol)) {
       console.log(
         chalk.yellow(`Данная позиция уже размещена position: ${coin.symbol}`)
