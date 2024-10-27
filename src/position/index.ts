@@ -19,12 +19,11 @@ const init = async () => {
       }
 
       if (params.new.length) {
-        console.log("new", params.new);
         await order.setTakingProfit(params.new);
       }
 
       if (params.opened.length) {
-        console.log("opened", params.opened);
+        await order.updateTakingProfit(params.opened);
       }
     },
   });

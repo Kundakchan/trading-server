@@ -76,7 +76,75 @@ const create: OrderCreate = async ({
     throw error;
   }
 };
-const update = async () => {};
+
+interface OrderUpdateParams {
+  symbol: string;
+  orderId: string;
+  qty: string;
+  price: string;
+}
+interface OrderUpdate {
+  (params: OrderUpdateParams): Promise<void>;
+}
+const update: OrderUpdate = async (params) => {
+  try {
+    const { retMsg, result } = await client.amendOrder({
+      category: "linear",
+      symbol: params.symbol,
+      orderId: params.orderId,
+      qty: params.qty,
+      price: params.price,
+    });
+
+    if (retMsg !== "OK")
+      throw new Error(
+        `Не удалось обновить ордер для закрытия позиции: ${params.symbol} - order id: ${params.orderId}`
+      );
+
+    console.log(
+      chalk.green(
+        `Ордер для закрытия позиции успешно обновлён: ${params.symbol}`
+      )
+    );
+  } catch (error) {
+    throw error;
+  }
+};
+
+const updateTakingProfit = async (params: string[]) => {
+  for (const symbol of params) {
+    const openPosition = position.localeGet(symbol);
+    const [closeOrder] = order.localeGet({
+      symbol: symbol,
+      placementType: "close",
+    });
+
+    if (!closeOrder.qty) continue;
+
+    if (parseFloat(closeOrder.qty) === parseFloat(openPosition.size)) continue;
+
+    const price = calculateMarkupPrice({
+      avgPrice: parseFloat(openPosition.avgPrice),
+      leverage: parseFloat(
+        openPosition.leverage ?? SETTING.LEVERAGE.toString()
+      ),
+      side: openPosition.side as Side,
+      pnl: SETTING.SUCCESS_CLOSED_POSITION_PNL,
+    });
+
+    try {
+      await update({
+        symbol: symbol,
+        orderId: closeOrder.orderId,
+        qty: openPosition.size,
+        price: price.toString(),
+      });
+    } catch (error) {
+      console.error(error);
+      continue;
+    }
+  }
+};
 
 const remove: OrderRemove = async (order) => {
   try {
@@ -281,4 +349,5 @@ export const order = {
   init,
   groupOrdersRemove,
   setTakingProfit,
+  updateTakingProfit,
 };
