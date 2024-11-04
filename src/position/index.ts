@@ -1,5 +1,6 @@
 import { client } from "../client";
 import { order } from "../order";
+import { trading } from "../trading";
 import {
   PositionData,
   PositionGet,
@@ -16,6 +17,10 @@ const init = async () => {
     beforeFilled: async (params) => {
       if (params.closed.length) {
         await order.groupOrdersRemove(params.closed);
+        params.closed.forEach((symbol) => {
+          _localeRemove(symbol);
+          trading.localeRemoveTimer(symbol);
+        });
       }
 
       if (params.new.length) {
@@ -89,9 +94,12 @@ const _localeUpdate: PositionLocalUpdate = (params) => {
 };
 
 const localeGet: PositionLocaleGet = (symbol) => _data[symbol];
+const localeGetAllSymbol = () => Object.keys(_data);
 
 const localeHas: PositionLocaleHas = (symbol) => !!localeGet(symbol);
-const closed = () => {};
+const _localeRemove = (symbol: string) => {
+  delete _data[symbol];
+};
 
 const get: PositionGet = async (params) => {
   try {
@@ -112,9 +120,9 @@ const get: PositionGet = async (params) => {
 };
 
 export const position = {
-  closed,
   get,
   localeGet,
   init,
   localeHas,
+  localeGetAllSymbol,
 };

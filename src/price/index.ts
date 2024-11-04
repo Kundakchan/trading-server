@@ -11,12 +11,14 @@ import { PriceGeneration } from "./interface";
 const generation: PriceGeneration = ({ entryPrice, side, percentage }) => {
   let multiplier = percentage;
 
-  const firstPrice =
-    side === "Buy"
-      ? entryPrice -
-        calculatePercentage({ target: entryPrice, percent: multiplier / 5 })
-      : entryPrice +
-        calculatePercentage({ target: entryPrice, percent: multiplier / 5 });
+  // const firstPrice =
+  //   side === "Buy"
+  //     ? entryPrice -
+  //       calculatePercentage({ target: entryPrice, percent: multiplier / 5 })
+  //     : entryPrice +
+  //       calculatePercentage({ target: entryPrice, percent: multiplier / 5 });
+
+  const firstPrice = entryPrice;
 
   const prices: number[] = Array.from({
     length: SETTING.NUMBER_OF_ORDERS,

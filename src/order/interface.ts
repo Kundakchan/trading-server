@@ -41,8 +41,8 @@ export interface OrderData extends Partial<AccountOrderV5> {
 }
 
 export interface BatchOrderRemoveResult {
-  success: string[];
-  error: string[];
+  success: { code: number; msg: string; id: string }[];
+  error: { code: number; msg: string; id: string }[];
 }
 export interface BatchOrderRemove {
   (params: OrderData[]): Promise<BatchOrderRemoveResult>;

@@ -20,9 +20,31 @@ import { position } from "../position";
 
 const timerForPendingOrders: TimerForPendingOrders = {};
 
+const isAvailableSlots = () => {
+  return getAvailableSlots() > 0;
+};
+
+const getAvailableSlots = () => {
+  const positionAllOpenSymbol = position.localeGetAllSymbol();
+  const ordersAllOpenSymbol = order.localeGetAllSymbol();
+  const positionAndOrders = [
+    ...new Set([...positionAllOpenSymbol, ...ordersAllOpenSymbol]),
+  ];
+  return SETTING.NUMBER_OF_POSITIONS - positionAndOrders.length;
+};
+
 const startTrading: StartTrading = async (message) => {
   const data = messageToJson<RecommendationsListItem[]>(message);
-  for (const coin of [data[0]]) {
+  for (const coin of data) {
+    if (!isAvailableSlots()) {
+      console.log(chalk.yellow("Лимит на покупку монет превышен"), coin.symbol);
+      console.log({
+        position: position.localeGetAllSymbol(),
+        orders: order.localeGetAllSymbol(),
+      });
+      continue;
+    }
+
     if (position.localeHas(coin.symbol)) {
       console.log(
         chalk.yellow(`Данная позиция уже размещена position: ${coin.symbol}`)
@@ -40,19 +62,22 @@ const startTrading: StartTrading = async (message) => {
 };
 
 const _placeOrder: PlaceOrder = async (data) => {
-  const capital = 100;
-  const orders = _createPackageOfOrders({ data, capital });
-
-  if (!orders) {
-    console.log(
-      chalk.yellow(
-        `Не удалось сгенерировать данные для открыть ордеров: ${data.symbol}`
-      )
-    );
-    return;
-  }
-
   try {
+    const capital = await wallet.getBalance();
+
+    console.log(`Покупка монет осуществляется на сумму: ${capital}`);
+
+    const orders = _createPackageOfOrders({ data, capital });
+
+    if (!orders) {
+      console.log(
+        chalk.yellow(
+          `Не удалось сгенерировать данные для открыть ордеров: ${data.symbol}`
+        )
+      );
+      return;
+    }
+
     const createdOrders = await order.batchCreate(orders);
     _setTimerForOutstandingOrders(createdOrders);
     console.log(
@@ -131,5 +156,14 @@ const _setTimerForOutstandingOrders: _SetTimerForOutstandingOrders = (
     timerForPendingOrders[item.orderId] = { ...item, timerId };
   });
 };
+const localeRemoveTimer = (symbol: string) => {
+  const ids = Object.keys(timerForPendingOrders).filter(
+    (item) => timerForPendingOrders[item].symbol === symbol
+  );
+  ids.forEach((item) => {
+    clearTimeout(timerForPendingOrders[item].timerId);
+    delete timerForPendingOrders[item];
+  });
+};
 
-export { startTrading };
+export const trading = { startTrading, getAvailableSlots, localeRemoveTimer };

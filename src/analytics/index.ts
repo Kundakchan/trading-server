@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import WebSocket from "ws";
-import { startTrading } from "../trading";
+import { trading } from "../trading";
 
 const WEBSOCKET_URL = process.env.API_ANALYTICS_WEBSOCKET;
 if (!WEBSOCKET_URL) throw new Error("Отсутствует адрес веб-сокета аналитики");
@@ -17,7 +17,7 @@ const init = () => {
     console.log(chalk.green("Успешное соединение с сервером аналитики"));
   });
 
-  ws.on("message", startTrading);
+  ws.on("message", trading.startTrading);
 };
 
 export const analytics = { init };

@@ -194,21 +194,29 @@ const batchRemove: BatchOrderRemove = async (params) => {
     };
 
     retExtInfo.list.forEach((item, index) => {
-      if (item.msg === "OK") {
+      if ([0, 110001].includes(item.code)) {
         _localeRemove({ orderId: result.list[index].orderId });
         console.log(
           chalk.green(
-            `Ордер успешно отменён: ${result.list[index].symbol} - order id: ${result.list[index].orderId}`
+            `Ордер успешно отменён: ${result.list[index].symbol} - order id: ${result.list[index].orderId}, { code: ${item.code}, message: ${item.msg} }`
           )
         );
-        cancel.success.push(result.list[index].orderId);
+        cancel.success.push({
+          code: item.code,
+          msg: item.msg,
+          id: result.list[index].orderId,
+        });
       } else {
         console.log(
           chalk.red(
-            `Не удалось полностью выполнить отмену пакетного ордера: ${result.list[index].symbol} - order id: ${result.list[index].orderId}`
+            `Не удалось полностью выполнить отмену пакетного ордера: ${result.list[index].symbol} - order id: ${result.list[index].orderId}, { code: ${item.code}, message: ${item.msg} }`
           )
         );
-        cancel.error.push(result.list[index].orderId);
+        cancel.error.push({
+          code: item.code,
+          msg: item.msg,
+          id: result.list[index].orderId,
+        });
       }
     });
     return cancel;
@@ -338,6 +346,13 @@ const setTakingProfit = async (params: string[]) => {
   }
 };
 
+const localeGetAllSymbol = () => {
+  const allOpenOrder = localeGet({ placementType: "open" }).map(
+    (item) => item.symbol
+  );
+  return [...new Set(allOpenOrder)];
+};
+
 export const order = {
   getData,
   create,
@@ -350,4 +365,5 @@ export const order = {
   groupOrdersRemove,
   setTakingProfit,
   updateTakingProfit,
+  localeGetAllSymbol,
 };

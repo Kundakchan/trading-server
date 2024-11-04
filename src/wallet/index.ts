@@ -1,5 +1,7 @@
 import { SETTING } from "..";
+import { client } from "../client";
 import { coins } from "../coins";
+import { trading } from "../trading";
 import { WalletCanBuyCoins, WalletGetAmount } from "./interface";
 
 const getAmount: WalletGetAmount = ({ balance, prices, qtyStep }) => {
@@ -37,7 +39,44 @@ const canBuyCoins: WalletCanBuyCoins = ({ amounts, symbol }) => {
   }
 };
 
+const getWallet = async () => {
+  try {
+    const { retMsg, result } = await client.getWalletBalance({
+      accountType: "UNIFIED",
+      coin: "USDT",
+    });
+
+    if (retMsg !== "OK") {
+      throw new Error(`Не удалось получить данные кошелька: ${retMsg}`);
+    }
+
+    return result.list[0];
+  } catch (error) {
+    throw error;
+  }
+};
+
+const getBalance = async () => {
+  try {
+    const { totalMarginBalance } = await getWallet();
+
+    if (totalMarginBalance) {
+      return (
+        parseFloat(totalMarginBalance) /
+        SETTING.PART_OF_BALANCE /
+        SETTING.NUMBER_OF_POSITIONS
+      );
+    } else {
+      return 0;
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const wallet = {
+  getBalance,
+  getWallet,
   getAmount,
   canBuyCoins,
 };
