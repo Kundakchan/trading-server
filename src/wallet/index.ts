@@ -1,7 +1,6 @@
 import { SETTING } from "..";
 import { client } from "../client";
 import { coins } from "../coins";
-import { trading } from "../trading";
 import { WalletCanBuyCoins, WalletGetAmount } from "./interface";
 
 const getAmount: WalletGetAmount = ({ balance, prices, qtyStep }) => {
@@ -10,7 +9,11 @@ const getAmount: WalletGetAmount = ({ balance, prices, qtyStep }) => {
 
   return prices
     .map((price) => money / price)
-    .map((coin, index) => _calculatePowerOfTwo(coin, prices.length - index))
+    .map((coin, index) =>
+      SETTING.SINGLE_MODE
+        ? coin
+        : _calculatePowerOfTwo(coin, prices.length - index)
+    )
     .map((coin) => {
       const value = Math.trunc(coin / qtyStep) * qtyStep;
 

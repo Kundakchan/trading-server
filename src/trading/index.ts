@@ -72,7 +72,7 @@ const _placeOrder: PlaceOrder = async (data) => {
     if (!orders) {
       console.log(
         chalk.yellow(
-          `Не удалось сгенерировать данные для открыть ордеров: ${data.symbol}`
+          `Не удалось сгенерировать данные для открытия ордеров: ${data.symbol}`
         )
       );
       return;
